@@ -16,6 +16,8 @@ from numpy import ndarray
 sleep_time = 1 / 20
 data_base_path = 'C:\\Users\\Noworks\\Documents\\Trackmania\\TrainingData'
 
+recording = False
+
 start_channel = Queue()
 
 
@@ -32,7 +34,7 @@ async def main():
     screen_recorder = ScreenRecorder()
     openplanet_client = TM2020OpenPlanetClient()
 
-    keyboard_listener = keyboard.Listener(on_press=on_press)
+    keyboard_listener = keyboard.Listener(on_release=on_release)
     keyboard_listener.start()
 
     snapshot_channel = Queue()
@@ -48,21 +50,28 @@ async def main():
     save_thread.cancel()
 
 
-def on_press(key):
+def on_release(key):
+    global recording
     try:
         if key.char == 'q':
-            start_channel.put(True)
-            print('Starting run')
+            if recording:
+                recording = False
+                print('Cancelling run')
+            else:
+                recording = True
+                start_channel.put(True)
+                print('Starting run')
     except:
         pass
 
 
 async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020OpenPlanetClient,
                      channel: Queue):
+    global recording
     run_start_time = time.time_ns()
     vehicle_data = openplanet_client.retrieve_data()
 
-    while not vehicle_data.terminated:
+    while not vehicle_data.terminated and recording:
         try:
             frame_time = time.perf_counter()
             frame = screen_recorder.record_downsampled_frame(4)
@@ -78,7 +87,11 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
         except:
             pass
 
-    print('Run ended')
+    if recording:
+        recording = False
+        print('Run completed')
+    else:
+        print('Run cancelled')
 
 
 def save_queue(channel: Queue):
@@ -106,6 +119,15 @@ def save_queue(channel: Queue):
                 json.dump(frame_snapshot.vehicle_data.__dict__, f)
         except:
             pass
+
+
+def delete_run(timestamp: int):
+    """Remove a cancelled run from the file system"""
+    run_datetime = datetime.fromtimestamp(timestamp / 1e9)
+
+    base_path = path.join(data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'))
+
+    os.rmdir(base_path)
 
 
 if __name__ == '__main__':
