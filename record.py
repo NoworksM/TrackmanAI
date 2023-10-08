@@ -1,11 +1,14 @@
 import asyncio
 import json
 import os
+import threading
+from datetime import datetime
 from os import path
+from queue import Queue
 
 from input import TM2020OpenPlanetClient, Trackmania2020Data
 from recording import ScreenRecorder
-from time import perf_counter
+import time
 from pynput import keyboard
 import cv2
 from numpy import ndarray
@@ -13,7 +16,7 @@ from numpy import ndarray
 sleep_time = 1 / 20
 data_base_path = 'C:\\Users\\Noworks\\Documents\\Trackmania\\TrainingData'
 
-start_channel = asyncio.Queue[None]()
+start_channel = Queue()
 
 
 class FrameSnapshot:
@@ -25,43 +28,51 @@ class FrameSnapshot:
 
 
 async def main():
+    global start_channel
     screen_recorder = ScreenRecorder()
     openplanet_client = TM2020OpenPlanetClient()
 
     keyboard_listener = keyboard.Listener(on_press=on_press)
     keyboard_listener.start()
 
-    snapshot_channel: asyncio.Queue[FrameSnapshot] = asyncio.Queue()
+    snapshot_channel = Queue()
 
-    save_thread = asyncio.create_task(save_queue(snapshot_channel))
+    # Start saving thread
+    save_thread = threading.Thread(target=save_queue, args=(snapshot_channel,), daemon=True)
+    save_thread.start()
 
     while True:
-        await start_channel.get()
+        start_channel.get()
         await record_run(screen_recorder, openplanet_client, snapshot_channel)
 
     save_thread.cancel()
 
 
 def on_press(key):
-    if key.char == 'q':
-        start_channel.put(None)
-        print('Starting run')
+    try:
+        if key.char == 'q':
+            start_channel.put(True)
+            print('Starting run')
+    except:
+        pass
 
 
 async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020OpenPlanetClient,
-                     channel: asyncio.Queue[FrameSnapshot]):
-    run_start_time = perf_counter()
+                     channel: Queue):
+    run_start_time = time.time_ns()
     vehicle_data = openplanet_client.retrieve_data()
 
-    while (not vehicle_data.terminated) or True:
+    while not vehicle_data.terminated:
         try:
-            frame_time = perf_counter()
-            bitmap = screen_recorder.record_frame_bitmap()
+            frame_time = time.perf_counter()
+            frame = screen_recorder.record_downsampled_frame(4)
             vehicle_data = openplanet_client.retrieve_data()
 
-            await channel.put(FrameSnapshot(run_start_time, frame_time, bitmap, vehicle_data))
+            current = time.time_ns()
 
-            current_time = perf_counter()
+            channel.put(FrameSnapshot(run_start_time, current, frame, vehicle_data))
+
+            current_time = time.perf_counter()
 
             await asyncio.sleep(sleep_time - (current_time - frame_time))
         except:
@@ -70,25 +81,31 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
     print('Run ended')
 
 
-async def save_queue(channel: asyncio.Queue[FrameSnapshot]):
+def save_queue(channel: Queue):
     while True:
-        frame_snapshot = await channel.get()
+        try:
+            frame_snapshot = channel.get()
 
-        base_path = path.join(data_base_path, f'{round(frame_snapshot.run_start_time)}',
-                              f'{round(frame_snapshot.frame_time)}')
-        frame_path = base_path + '.bmp'
-        data_path = base_path + '.json'
+            run_datetime = datetime.fromtimestamp(frame_snapshot.run_start_time / 1e9)
 
-        # Create directories
-        if not path.exists(path.dirname(frame_path)):
-            os.makedirs(path.dirname(frame_path))
+            base_path = path.join(data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'),
+                                  f'{frame_snapshot.frame_time % 1e12}')
+            frame_path = base_path + '.bmp'
+            data_path = base_path + '.json'
 
-        # Write image to file
-        cv2.imwrite(frame_path, frame_snapshot.image)
+            # Create directories
+            if not path.exists(path.dirname(frame_path)):
+                os.makedirs(path.dirname(frame_path))
 
-        # Write data to json file
-        with open(data_path, 'w') as f:
-            json.dump(frame_snapshot.vehicle_data, f)
+            # Write image to file
+            cv2.imwrite(frame_path, frame_snapshot.image)
+            print(f'Saving image at {datetime.now()}')
+
+            # Write data to json file
+            with open(data_path, 'w') as f:
+                json.dump(frame_snapshot.vehicle_data.__dict__, f)
+        except:
+            pass
 
 
 if __name__ == '__main__':

@@ -32,10 +32,37 @@ class ScreenRecorder:
         return data_bitmap
 
     def record_frame_to_ndarray(self):
-        return ScreenRecorder.bitmap_to_numpy(self.record_frame_bitmap())
+        hDC = win32gui.GetWindowDC(self._trackmania_window_handle)
+        memory_device_context = win32ui.CreateDCFromHandle(hDC)
+
+        # Create memory DC and bitmap
+        compatible_memory_device_context = memory_device_context.CreateCompatibleDC()
+        rect = win32gui.GetWindowRect(self._trackmania_window_handle)
+        width = rect[2] - rect[0]
+        height = rect[3] - rect[1]
+        data_bitmap = win32ui.CreateBitmap()
+        data_bitmap.CreateCompatibleBitmap(memory_device_context, width, height)
+        old_bitmap = compatible_memory_device_context.SelectObject(data_bitmap)
+
+        # Copy window contents into bitmap
+        compatible_memory_device_context.BitBlt((0, 0), (width, height), memory_device_context, (0, 0),
+                                                win32con.SRCCOPY)
+
+        img = ScreenRecorder.bitmap_to_numpy(data_bitmap)
+
+        # Cleanup
+        # De-select the bitmap
+        compatible_memory_device_context.SelectObject(old_bitmap)
+        # Delete the created resources
+        win32gui.DeleteObject(data_bitmap.GetHandle())
+        compatible_memory_device_context.DeleteDC()
+        memory_device_context.DeleteDC()
+        win32gui.ReleaseDC(self._trackmania_window_handle, hDC)
+
+        return img
 
     def record_downsampled_frame(self, factor=2):
-        return ScreenRecorder.downsample_image(self.record_frame(), factor)
+        return ScreenRecorder.downsample_image(self.record_frame_to_ndarray(), factor)
 
     @staticmethod
     def bitmap_to_numpy(bitmap):
