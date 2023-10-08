@@ -5,6 +5,7 @@ import threading
 from datetime import datetime
 from os import path
 from queue import Queue
+import config
 
 from input import TM2020OpenPlanetClient, Trackmania2020Data
 from recording import ScreenRecorder
@@ -12,9 +13,6 @@ import time
 from pynput import keyboard
 import cv2
 from numpy import ndarray
-
-sleep_time = 1 / 20
-data_base_path = 'C:\\Users\\Noworks\\Documents\\Trackmania\\TrainingData'
 
 recording = False
 
@@ -83,7 +81,7 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
 
             current_time = time.perf_counter()
 
-            await asyncio.sleep(sleep_time - (current_time - frame_time))
+            await asyncio.sleep(config.sleep_time - (current_time - frame_time))
         except:
             pass
 
@@ -101,7 +99,7 @@ def save_queue(channel: Queue):
 
             run_datetime = datetime.fromtimestamp(frame_snapshot.run_start_time / 1e9)
 
-            base_path = path.join(data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'),
+            base_path = path.join(config.data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'),
                                   f'{frame_snapshot.frame_time % 1e12}')
             frame_path = base_path + '.bmp'
             data_path = base_path + '.json'
@@ -125,7 +123,7 @@ def delete_run(timestamp: int):
     """Remove a cancelled run from the file system"""
     run_datetime = datetime.fromtimestamp(timestamp / 1e9)
 
-    base_path = path.join(data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'))
+    base_path = path.join(config.data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'))
 
     os.rmdir(base_path)
 
