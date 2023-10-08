@@ -116,7 +116,7 @@ def compile_folder(path: str):
         if i + check_frames > len(route):
             overlap = i + check_frames - len(route)
 
-            frame_data['reward'] += math.pow(100, overlap / check_frames)
+            frame_data['reward'] += 5 * math.pow(100, overlap / check_frames)
         elif i + check_frames + 1 < len(route):
             reward_distance -= movement.calculate_distance(route[i]['x'], route[i]['y'], route[i]['z'],
                                                            route[i + 1]['x'], route[i + 1]['y'], route[i + 1]['z'])
