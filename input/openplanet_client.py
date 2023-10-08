@@ -72,22 +72,22 @@ class TM2020OpenPlanetClient:
 
 class Trackmania2020Data:
     def __init__(self, data):
-        self.x = data[2]
-        self.y = data[3]
-        self.z = data[4]
-        self.terminated = bool(data[8])
+        self.x: float = data[2]
+        self.y: float = data[3]
+        self.z: float = data[4]
+        self.terminated: bool = bool(data[8])
         self.unknown_0 = data[0]
         self.unknown_1 = data[1]
-        self.steering_input = data[5]
-        self.accelerate = data[6]
-        self.brake = data[7]
+        self.steering_input: float = data[5]
+        self.accelerate: float = data[6]
+        self.brake: float = data[7]
         self.unknown_5 = data[9]
-        self.rpm = data[10]
+        self.rpm: int = data[10]
 
     def __str__(self):
-        return (f'x: {self.x}, y: {self.y}, z: {self.z}, terminated: {self.terminated}, unknown_0: {self.unknown_0}, '
-                f'steering_input: {self.steering_input}, unknown_1: {self.unknown_1}, accelerate: {self.accelerate}, '
-                f'brake: {self.brake}, unknown_5: {self.unknown_5}, rpm: {self.rpm}')
+        return (f'x: {self.x}, y: {self.y}, z: {self.z}, terminated: {self.terminated}, '
+                f'steering_input: {self.steering_input}, accelerate: {self.accelerate}, '
+                f'brake: {self.brake}, rpm: {self.rpm}')
 
 
 def save_ghost(host='127.0.0.1', port=10000):
