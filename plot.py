@@ -30,28 +30,24 @@ def main():
         reward = []
         accelerate = []
         brake = []
-        unknown_0 = []
-        unknown_1 = []
-        unknown_5 = []
+        speed = []
+        distance = []
+        gear = []
 
-        for i in range(1, len(route)):
-            previous_frame = route[i - 1]
+        for i in range(len(route)):
             current_frame = route[i]
-
-            distance = movement.calculate_distance(previous_frame['x'], previous_frame['y'], previous_frame['z'],
-                                                   current_frame['x'], current_frame['y'], current_frame['z'])
 
             steering.append(current_frame['steering_input'])
             rpm.append(current_frame['rpm'])
             reward.append(current_frame['reward'])
             accelerate.append(current_frame['accelerate'])
             brake.append(current_frame['brake'])
-            unknown_0.append(current_frame['unknown_0'])
-            unknown_1.append(current_frame['unknown_1'])
-            unknown_5.append(current_frame['unknown_5'])
+            speed.append(current_frame.get('speed', current_frame.get('unknown_0', 0)))
+            distance.append(current_frame.get('distance', current_frame.get('unknown_1', 0)))
+            gear.append(current_frame.get('gear', current_frame.get('unknown_5', 1)))
             distance_covered.append(distance)
 
-        fig, axs = plt.subplots(9, 1, figsize=(40, 24))
+        fig, axs = plt.subplots(8, 1, figsize=(40, 24))
 
         axs[0].plot(steering)
         axs[0].set_title('Steering')
@@ -63,7 +59,7 @@ def main():
         axs[1].set_ylabel('Reward Value')
         axs[1].grid(True)
 
-        axs[2].plot(distance_covered)
+        axs[2].plot(distance)
         axs[2].set_title('Distance')
         axs[2].set_ylabel('Distance Covered')
         axs[2].grid(True)
@@ -83,20 +79,15 @@ def main():
         axs[5].set_ylabel('Brake Input')
         axs[5].grid(True)
 
-        axs[6].plot(unknown_0)
-        axs[6].set_title('Unknown 0')
-        axs[6].set_ylabel('Unknown 0 Input')
+        axs[6].plot(speed)
+        axs[6].set_title('Speed')
+        axs[6].set_ylabel('Speed (FR)')
         axs[6].grid(True)
 
-        axs[7].plot(unknown_1)
-        axs[7].set_title('Unknown 1')
-        axs[7].set_ylabel('Unknown 1 Input')
+        axs[7].plot(gear)
+        axs[7].set_title('Gear')
+        axs[7].set_ylabel('Gear')
         axs[7].grid(True)
-
-        axs[8].plot(unknown_5)
-        axs[8].set_title('Unknown 5')
-        axs[8].set_ylabel('Unknown 5 Input')
-        axs[8].grid(True)
 
         plt.tight_layout()
         plt.savefig(plot_path)

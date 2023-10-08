@@ -77,18 +77,18 @@ class Trackmania2020Data:
         self.y: float = data[3]
         self.z: float = data[4]
         self.terminated: bool = bool(data[8])
-        self.unknown_0 = data[0]
-        self.unknown_1 = data[1]
+        self.speed = data[0]
+        self.distance = data[1]
         self.steering_input: float = data[5]
         self.accelerate: float = data[6]
         self.brake: float = data[7]
-        self.unknown_5 = data[9]
+        self.gear = data[9]
         self.rpm: int = data[10]
 
     def __str__(self):
         return (f'x: {self.x}, y: {self.y}, z: {self.z}, terminated: {self.terminated}, '
                 f'steering_input: {self.steering_input}, accelerate: {self.accelerate}, '
-                f'brake: {self.brake}, rpm: {self.rpm}')
+                f'brake: {self.brake}, rpm: {self.rpm}, speed: {self.speed}')
 
 
 def save_ghost(host='127.0.0.1', port=10000):

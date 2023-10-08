@@ -20,7 +20,7 @@ def main():
 def rename_timestamp_files_to_frame_number(path: str):
     files = os.listdir(path)
 
-    bitmap_files = [file for file in files if file.endswith('.bmp') or file.endswith('.png')]
+    bitmap_files = [file for file in files if file.endswith('.bmp')]
     bitmap_files.sort(key=lambda x: int(x.split('.')[0]))
 
     for i in range(len(bitmap_files)):
@@ -88,43 +88,46 @@ def compile_folder(path: str):
         json_file = os.path.join(path, bitmap_file[:-3] + 'json')
 
         if not os.path.exists(json_file):
-            raise f'paired JSON file {json_file} does not exist'
+            raise FileNotFoundError('paired JSON file {json_file} does not exist')
 
         with open(json_file, 'r') as f:
             frame_data = json.load(f)
 
             route.append(frame_data)
 
-    reward_distance = 0.0
-
     check_frames = config.polling_rate * config.reward_timeframe_seconds
 
-    for i in range(check_frames):
-        if i >= len(route):
-            break
+    total_distance_traveled = route[-1].get('distance', route[-1].get('unknown_1', 0))
 
-        # calculate distance between this frame and the next from x, y, z coordinates
-        if i + 1 < len(route):
-            reward_distance += movement.calculate_distance(route[i]['x'], route[i]['y'], route[i]['z'],
-                                                           route[i + 1]['x'], route[i + 1]['y'], route[i + 1]['z'])
+    max_reward = 0
 
     for i in range(len(route)):
         frame_data = route[i]
 
-        frame_data['reward'] = reward_distance
+        current_distance_travelled = route[i].get('distance', route[i].get('unknown_1', 0))
 
-        if i + check_frames > len(route):
+        if i + check_frames > len(route) - 1:
             overlap = i + check_frames - len(route)
 
-            frame_data['reward'] += 5 * math.pow(100, overlap / check_frames)
-        elif i + check_frames + 1 < len(route):
-            reward_distance -= movement.calculate_distance(route[i]['x'], route[i]['y'], route[i]['z'],
-                                                           route[i + 1]['x'], route[i + 1]['y'], route[i + 1]['z'])
-            reward_distance += movement.calculate_distance(route[i + check_frames]['x'], route[i + check_frames]['y'],
-                                                           route[i + check_frames]['z'],
-                                                           route[i + check_frames + 1]['x'],
-                                                           route[i + check_frames + 1]['y'],
-                                                           route[i + check_frames + 1]['z'])
+            rough_average_distance = ((total_distance_traveled - current_distance_travelled) / (
+                        len(route) - i)) * check_frames
+
+            frame_data['reward'] = rough_average_distance * math.pow(2, overlap / check_frames)
+            # frame_data['reward'] = route[i].get('distance', route[i].get('unknown_1', 0))
+
+            if frame_data['terminated']:
+                frame_data['reward'] = max_reward * 2
+        else:
+            future_distance_traveled = route[i + check_frames].get('distance',
+                                                                   route[i + check_frames].get('unknown_1', 0))
+
+            frame_data['reward'] = future_distance_traveled - current_distance_travelled
+
+            if frame_data['reward'] > max_reward:
+                max_reward = frame_data['reward']
+
+        if frame_data.get('speed', frame_data.get('unknown_0', 0)) < 1:
+            frame_data['speed'] = 0
 
     assert len(bitmap_files) == len(route)
 
