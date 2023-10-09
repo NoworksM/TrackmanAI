@@ -84,6 +84,8 @@ class ScreenRecorder:
         """Downsample a numpy image by a given factor"""
         downsampled = cv2.resize(image, (int(image.shape[1] / factor), int(image.shape[0] / factor)))
 
+        downsampled.shape = (downsampled.shape[0], downsampled.shape[1], 4)
+
         return downsampled.astype(np.uint8)
 
     @staticmethod

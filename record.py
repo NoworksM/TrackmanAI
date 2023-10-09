@@ -68,7 +68,7 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
                      channel: Queue):
     global recording
     run_start_time = time.time_ns()
-    vehicle_data = openplanet_client.retrieve_data()
+    vehicle_data = openplanet_client.get_data()
 
     frame_number = 0
 
@@ -76,7 +76,7 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
         try:
             frame_time = time.perf_counter()
             frame = screen_recorder.record_downsampled_frame(4)
-            vehicle_data = openplanet_client.retrieve_data()
+            vehicle_data = openplanet_client.get_data()
 
             current = time.time_ns()
 
