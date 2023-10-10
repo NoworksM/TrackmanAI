@@ -1,5 +1,6 @@
 import os
 
+import dadaptation
 import torch as th
 import torch.nn as nn
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -59,6 +60,9 @@ if os.path.exists("trackmanai_ppo.zip"):
     model = PPO.load("trackmanai_ppo", env=gym.make('Trackmania-v1'), verbose=1)
 else:
     model = PPO("MultiInputPolicy", 'Trackmania-v1', verbose=1)
+
+model.learning_rate = 1.0
+model.policy.optimizer = dadaptation.DAdaptAdam(model.policy.parameters(), lr=1.0)
 
 while True:
     model.learn(total_timesteps=10000)
