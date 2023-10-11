@@ -77,6 +77,8 @@ class ScreenRecorder:
         img = np.fromstring(bitmap_string, dtype=np.uint8)
         img.shape = (height, width, 4)
 
+        # img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
         return img
 
     @staticmethod

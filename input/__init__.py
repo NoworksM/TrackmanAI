@@ -2,3 +2,4 @@ from .action_states import Action
 from .logging import TrackmaniaInputStateLog
 from .openplanet_client import TM2020OpenPlanetClient, Trackmania2020Data
 from .trackmania_keyboard_driver import TrackmaniaKeyboardDriver
+from .trackmania_action import TrackmaniaAction

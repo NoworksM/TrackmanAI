@@ -4,12 +4,15 @@ import time
 import pygetwindow as gw
 import pyautogui
 
+from .trackmania_action import TrackmaniaAction
 from input.keyboard_control import ReleaseKey, PressKey
 
 VK_W = 0x11
 VK_A = 0x1E
 VK_S = 0x1F
 VK_D = 0x20
+VK_DOWN = 0xD0
+VK_ENTER = 0x1C
 VK_DELETE = 0xD3
 
 WM_KEYDOWN = 0x0100
@@ -80,10 +83,7 @@ class TrackmaniaKeyboardDriver:
     # init with pynput keyboard writer
     def __init__(self, window_name='Trackmania'):
         self.window_name = window_name
-        self.is_w_pressed = False
-        self.is_a_pressed = False
-        self.is_s_pressed = False
-        self.is_d_pressed = False
+        self.current_action = TrackmaniaAction.Nothing
         self.trackmania_window = None
         self._get_trackmania_window()
 
@@ -102,100 +102,128 @@ class TrackmaniaKeyboardDriver:
             else:
                 raise Exception("Failed to focus on the Trackmania window!")
 
+    def perform_action(self, action):
+        was_accelerating = TrackmaniaAction.has_flag(self.current_action, TrackmaniaAction.Accelerate)
+        was_braking = TrackmaniaAction.has_flag(self.current_action, TrackmaniaAction.Brake)
+        was_turning_left = TrackmaniaAction.has_flag(self.current_action, TrackmaniaAction.Left)
+        was_turning_right = TrackmaniaAction.has_flag(self.current_action, TrackmaniaAction.Right)
+
+        is_accelerating = TrackmaniaAction.has_flag(action, TrackmaniaAction.Accelerate)
+        is_braking = TrackmaniaAction.has_flag(action, TrackmaniaAction.Brake)
+        is_turning_left = TrackmaniaAction.has_flag(action, TrackmaniaAction.Left)
+        is_turning_right = TrackmaniaAction.has_flag(action, TrackmaniaAction.Right)
+
+        if was_accelerating and not is_accelerating:
+            self._focus_window()
+            ReleaseKey(VK_W)
+        elif not was_accelerating and is_accelerating:
+            self._focus_window()
+            PressKey(VK_W)
+        if was_braking and not is_braking:
+            self._focus_window()
+            ReleaseKey(VK_S)
+        elif not was_braking and is_braking:
+            self._focus_window()
+            PressKey(VK_S)
+        if was_turning_left and not is_turning_left:
+            self._focus_window()
+            ReleaseKey(VK_A)
+        elif not was_turning_left and is_turning_left:
+            self._focus_window()
+            PressKey(VK_A)
+        if was_turning_right and not is_turning_right:
+            self._focus_window()
+            ReleaseKey(VK_D)
+        elif not was_turning_right and is_turning_right:
+            self._focus_window()
+            PressKey(VK_D)
+
+        self.current_action = action
+
     def reset(self):
         self._focus_window()
-        if self.is_w_pressed:
-            PressKey(VK_W)
-            self.is_w_pressed = False
-        if self.is_a_pressed:
-            PressKey(VK_A)
-            self.is_a_pressed = False
-        if self.is_s_pressed:
-            PressKey(VK_S)
-            self.is_s_pressed = False
-        if self.is_d_pressed:
-            PressKey(VK_D)
-            self.is_d_pressed = False
+        if self.current_action.has_flag(TrackmaniaAction.Accelerate):
+            ReleaseKey(VK_W)
+        if self.current_action.has_flag(TrackmaniaAction.Brake):
+            ReleaseKey(VK_A)
+        if self.current_action.has_flag(TrackmaniaAction.Left):
+            ReleaseKey(VK_S)
+        if self.current_action.has_flag(TrackmaniaAction.Right):
+            ReleaseKey(VK_D)
+
+        self.current_action = TrackmaniaAction.Nothing
 
     def accelerate(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_W)
-        self.is_w_pressed = True
+        self.perform_action(TrackmaniaAction.Accelerate)
 
     def brake(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_S)
-        self.is_s_pressed = True
+        self.perform_action(TrackmaniaAction.Brake)
 
     def turn_left(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_A)
-        self.is_a_pressed = True
+        self.perform_action(TrackmaniaAction.Left)
 
     def turn_right(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_D)
-        self.is_d_pressed = True
+        self.perform_action(TrackmaniaAction.Right)
 
     def accelerate_left(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_W)
-        self.is_w_pressed = True
-        ReleaseKey(VK_A)
-        self.is_a_pressed = True
+        self.perform_action(TrackmaniaAction.AccelerateLeft)
 
     def accelerate_right(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_W)
-        self.is_w_pressed = True
-        ReleaseKey(VK_D)
-        self.is_d_pressed = True
+        self.perform_action(TrackmaniaAction.AccelerateRight)
 
     def brake_left(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_S)
-        self.is_s_pressed = True
-        ReleaseKey(VK_A)
-        self.is_a_pressed = True
+        self.perform_action(TrackmaniaAction.BrakeLeft)
 
     def brake_right(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_S)
-        self.is_s_pressed = True
-        ReleaseKey(VK_D)
-        self.is_d_pressed = True
+        self.perform_action(TrackmaniaAction.BrakeRight)
 
     def drift_left(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_W)
-        self.is_w_pressed = True
-        ReleaseKey(VK_S)
-        self.is_s_pressed = True
-        ReleaseKey(VK_A)
-        self.is_a_pressed = True
+        self.perform_action(TrackmaniaAction.DriftLeft)
 
     def drift_right(self):
         self._focus_window()
-        self.reset()
-        ReleaseKey(VK_W)
-        self.is_w_pressed = True
-        ReleaseKey(VK_S)
-        self.is_s_pressed = True
-        ReleaseKey(VK_D)
-        self.is_d_pressed = True
+        self.perform_action(TrackmaniaAction.DriftRight)
+
+    def start_course_again(self):
+        time.sleep(8)
+        self._focus_window()
+        PressKey(VK_ENTER)
+        time.sleep(0.25)
+        self._focus_window()
+        ReleaseKey(VK_ENTER)
+
+    def save_replay_and_start_course_again(self):
+        time.sleep(8)
+        self._focus_window()
+        PressKey(VK_DOWN)
+        time.sleep(0.25)
+        self._focus_window()
+        ReleaseKey(VK_DOWN)
+        time.sleep(3)
+        self._focus_window()
+        PressKey(VK_ENTER)
+        time.sleep(0.25)
+        self._focus_window()
+        ReleaseKey(VK_ENTER)
+        time.sleep(3)
+        self._focus_window()
+        PressKey(VK_ENTER)
+        time.sleep(0.25)
+        self._focus_window()
+        ReleaseKey(VK_ENTER)
 
     def restart(self):
         self.reset()
         self._focus_window()
         PressKey(VK_DELETE)
-        time.sleep(0.1)
+        time.sleep(0.25)
         ReleaseKey(VK_DELETE)
