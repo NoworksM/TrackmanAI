@@ -56,7 +56,4 @@ class TrackmaniaInputCallback(BaseCallback):
             self.logger.record('reward/reward', reward)
             self.logger.record('reward/max_reward', max_reward)
 
-            if self.num_timesteps % 500 == 0:
-                self.logger.dump(self.num_timesteps)
-
         return True

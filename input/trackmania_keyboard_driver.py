@@ -1,16 +1,14 @@
 import ctypes
 import time
 
-import pygetwindow as gw
-import pyautogui
-
-from .trackmania_action import TrackmaniaAction
 from input.keyboard_control import ReleaseKey, PressKey
+from .trackmania_action import TrackmaniaAction
 
 VK_W = 0x11
 VK_A = 0x1E
 VK_S = 0x1F
 VK_D = 0x20
+VK_SPACE = 0x39
 VK_DOWN = 0xD0
 VK_ENTER = 0x1C
 VK_DELETE = 0xD3
@@ -221,9 +219,23 @@ class TrackmaniaKeyboardDriver:
         self._focus_window()
         ReleaseKey(VK_ENTER)
 
-    def restart(self):
+    def restart(self, frame=None):
         self.reset()
         self._focus_window()
+        # if frame is not None and detection.check_if_press_a_button_exists(frame):
+        #     self._focus_window()
+        #     PressKey(VK_SPACE)
+        #     time.sleep(0.25)
+        #     self._focus_window()
+        #     ReleaseKey(VK_SPACE)
+        #     self.save_replay_and_start_course_again()
+        # else:
+        #     PressKey(VK_DELETE)
+        #     time.sleep(0.25)
+        #     self._focus_window()
+        #     ReleaseKey(VK_DELETE)
+
         PressKey(VK_DELETE)
         time.sleep(0.25)
+        self._focus_window()
         ReleaseKey(VK_DELETE)

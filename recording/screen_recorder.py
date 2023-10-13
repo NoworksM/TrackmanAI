@@ -4,8 +4,6 @@ import win32con
 import win32gui
 import win32ui
 
-import imgutils
-
 
 class ScreenRecorder:
     def __init__(self, window_name='Trackmania'):
@@ -48,7 +46,7 @@ class ScreenRecorder:
         compatible_memory_device_context.BitBlt((0, 0), (width, height), memory_device_context, (0, 0),
                                                 win32con.SRCCOPY)
 
-        img = ScreenRecorder.bitmap_to_numpy(data_bitmap)
+        img = ScreenRecorder.bitmap_to_numpy_grayscale(data_bitmap)
 
         # Cleanup
         # De-select the bitmap
@@ -77,7 +75,23 @@ class ScreenRecorder:
         img = np.fromstring(bitmap_string, dtype=np.uint8)
         img.shape = (height, width, 4)
 
-        # img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+        return img
+
+    def bitmap_to_numpy_grayscale(bitmap):
+        """Convert a windows Bitmap to a numpy array"""
+        bitmap_info = bitmap.GetInfo()
+        width, height = bitmap_info['bmWidth'], bitmap_info['bmHeight']
+
+        # Get bitmap data
+        bitmap_string = bitmap.GetBitmapBits(True)
+
+        # Create numpy array from the bitmap data
+        img = np.fromstring(bitmap_string, dtype=np.uint8)
+        img.shape = (height, width, 4)
+
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         return img
 
@@ -86,7 +100,10 @@ class ScreenRecorder:
         """Downsample a numpy image by a given factor"""
         downsampled = cv2.resize(image, (int(image.shape[1] / factor), int(image.shape[0] / factor)))
 
-        downsampled.shape = (downsampled.shape[0], downsampled.shape[1], 4)
+        if len(image.shape) > 2:
+            downsampled.shape = (downsampled.shape[0], downsampled.shape[1], image.shape[2])
+        else:
+            downsampled.shape = (downsampled.shape[0], downsampled.shape[1])
 
         return downsampled.astype(np.uint8)
 

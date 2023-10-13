@@ -1,0 +1,1 @@
+from .trackmania_2020_reward_calculator_race_v1 import TrackmaniaRewardCalculatorRace

@@ -5,6 +5,7 @@ class TrackmaniaAction(Enum):
     Nothing = 0
     Accelerate = 1
     Brake = 2
+    Drift = 1 | 2
     Left = 4
     Right = 8
     AccelerateLeft = 1 | 4
