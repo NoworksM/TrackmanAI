@@ -34,8 +34,12 @@ class TrackmaniaRewardCalculatorRace(Trackmania2020RewardCalculatorBase):
         elapsed_time = current_time - self._start_time
 
         if self._last_action.has_flags(TrackmaniaAction.Accelerate,
+                                       TrackmaniaAction.Brake) and not self._last_action.has_flags(
+                TrackmaniaAction.Left, TrackmaniaAction.Right):
+            reward - 10000;
+        if self._last_action.has_flags(TrackmaniaAction.Accelerate,
                                        TrackmaniaAction.Brake) and self._last_action.has_xor_flags(
-                                       TrackmaniaAction.Left, TrackmaniaAction.Right):
+            TrackmaniaAction.Left, TrackmaniaAction.Right):
             reward *= 4
         elif self._last_action.has_flag(TrackmaniaAction.Accelerate) and not self._last_action.has_flag(
                 TrackmaniaAction.Brake):

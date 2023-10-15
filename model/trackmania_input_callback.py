@@ -57,3 +57,14 @@ class TrackmaniaInputCallback(BaseCallback):
             self.logger.record('reward/max_reward', max_reward)
 
         return True
+
+    def _on_rollout_end(self) -> None:
+        super()._on_rollout_end()
+
+        self.training_env.reset()
+
+    def _on_rollout_start(self) -> None:
+        super()._on_rollout_start()
+
+        self.training_env.reset()
+
