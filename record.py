@@ -2,25 +2,28 @@ import asyncio
 import json
 import os
 import threading
+import time
 from datetime import datetime
 from os import path
 from queue import Queue
-import config
 
-from input import TM2020OpenPlanetClient, Trackmania2020Data
-from recording import ScreenRecorder
-import time
-from pynput import keyboard
 import cv2
 from numpy import ndarray
+from pynput import keyboard
+
+import config
+from input import TM2020OpenPlanetClient, Trackmania2020Data
+from recording import ScreenRecorder
 
 recording = False
 
 start_channel = Queue()
+delete_run_channel = Queue()
 
 
 class FrameSnapshot:
-    def __init__(self, frame_number: int, run_start_time: float, frame_time: float, image: ndarray, vehicle_data: Trackmania2020Data):
+    def __init__(self, frame_number: int, run_start_time: float, frame_time: float, image: ndarray,
+                 vehicle_data: Trackmania2020Data):
         self.frame_number: int = frame_number
         self.run_start_time: float = run_start_time
         self.frame_time: float = frame_time
@@ -41,6 +44,9 @@ async def main():
     # Start saving thread
     save_thread = threading.Thread(target=save_queue, args=(snapshot_channel,), daemon=True)
     save_thread.start()
+
+    remove_thread = threading.Thread(target=delete_run_queue, args=(delete_run_channel,), daemon=True)
+    remove_thread.start()
 
     while True:
         start_channel.get()
@@ -67,7 +73,7 @@ def on_release(key):
 async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020OpenPlanetClient,
                      channel: Queue):
     global recording
-    run_start_time = time.time_ns()
+    run_start_time_ns = time.time_ns()
     vehicle_data = openplanet_client.get_data()
 
     frame_number = 0
@@ -80,7 +86,7 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
 
             current = time.time_ns()
 
-            channel.put(FrameSnapshot(frame_number, run_start_time, current, frame, vehicle_data))
+            channel.put(FrameSnapshot(frame_number, run_start_time_ns, current, frame, vehicle_data))
 
             current_time = time.perf_counter()
 
@@ -95,6 +101,31 @@ async def record_run(screen_recorder: ScreenRecorder, openplanet_client: TM2020O
         print('Run completed')
     else:
         print('Run cancelled')
+        delete_run_channel.put(get_run_path(datetime.fromtimestamp(run_start_time_ns / 1e9)))
+
+
+def delete_run_queue(channel: Queue):
+    while True:
+        try:
+            run_dir = channel.get()
+
+            if not path.exists(run_dir):
+                return
+
+            time.sleep(2.5)
+
+            files = os.listdir(run_dir)
+
+            for file in files:
+                os.remove(path.join(run_dir, file))
+
+            os.rmdir(run_dir)
+        except:
+            pass
+
+
+def get_run_path(run_datetime: datetime) -> str:
+    return path.join(config.data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'))
 
 
 def save_queue(channel: Queue):
@@ -104,7 +135,7 @@ def save_queue(channel: Queue):
 
             run_datetime = datetime.fromtimestamp(frame_snapshot.run_start_time / 1e9)
 
-            base_path = path.join(config.data_base_path, run_datetime.strftime('%Y-%m-%d_%H-%M-%S'),
+            base_path = path.join(get_run_path(run_datetime),
                                   f'{frame_snapshot.frame_number:0{config.frame_naming_places}}')
             frame_path = base_path + '.bmp'
             data_path = base_path + '.json'
